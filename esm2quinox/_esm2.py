@@ -256,3 +256,37 @@ class ESM2(eqx.Module):
         logits = jax.vmap(self.logit_head)(hidden)
 
         return ESM2Result(hidden=hidden, logits=logits)
+
+    @eqx.filter_jit
+    def _call_from_embedding(self, x: jax.Array) -> ESM2Result:
+        """Call the model starting from embeddings rather than tokens.
+
+        This method bypasses the tokenization and embedding lookup steps,
+        allowing you to pass pre-computed embeddings directly to the transformer layers.
+
+        **Arguments:**
+
+        - `x`: Pre-computed embeddings of shape `(length, embed_dim)`.
+
+        **Returns:**
+
+        An `esm2quinox.ESM2Result` object containing the hidden states and logits.
+
+        !!! Note
+            This method assumes no padding tokens are present in the input embeddings.
+            All positions are treated as valid sequence positions.
+        """
+        dynamic_layers, static_layer = eqx.partition(self.layers, eqx.is_array)
+
+        is_pad = jnp.zeros(x.shape[0], dtype=jnp.bool_)
+
+        def f(x, dynamic_layer):
+            layer = eqx.combine(dynamic_layer, static_layer)
+            x = layer(x, is_pad=is_pad)
+            return x, None
+
+        x, _ = lax.scan(f, x, xs=dynamic_layers)
+        hidden = jax.vmap(self.layer_norm)(x)
+        logits = jax.vmap(self.logit_head)(hidden)
+
+        return ESM2Result(hidden=hidden, logits=logits)
