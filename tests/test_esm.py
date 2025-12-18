@@ -116,3 +116,37 @@ def test_call_on_string(token_dropout, getkey):
     out2 = model(tokens)
     assert jnp.array_equal(out.hidden, out2.hidden)
     assert jnp.array_equal(out.logits, out2.logits)
+
+
+def test_all_hidden_output(getkey):
+    num_layers = 4
+    embed_size = 24
+    num_heads = 3
+    alphabet_size = 33
+
+    model = esm2quinox.ESM2(
+        num_layers=num_layers,
+        embed_size=embed_size,
+        num_heads=num_heads,
+        token_dropout=False,
+        key=getkey(),
+    )
+
+    # Test with tokenised input
+    protein = "SPIDERMAN"
+    [tokens] = esm2quinox.tokenise([protein])
+    seq_length = len(tokens)
+
+    out = model(tokens)
+
+    # Check all_hidden dimensions (should num_layers x length x embed_size)
+    assert out.all_hidden.shape == (num_layers, seq_length, embed_size), (
+        f"Expected all_hidden shape {(num_layers, seq_length, embed_size)}, "
+        f"got {out.all_hidden.shape}"
+    )
+
+    # Test with string input
+    out2 = model("SPIDERMAN")
+    assert out2.hidden.shape == (seq_length, embed_size)
+    assert out2.logits.shape == (seq_length, alphabet_size)
+    assert out2.all_hidden.shape == (num_layers, seq_length, embed_size)
