@@ -197,9 +197,6 @@ class ESM2(eqx.Module):
         self.layer_norm = eqx.nn.LayerNorm(embed_size)
         self.logit_head = LogitHead(embed_size, _alphabet_size, logit_key)
 
-    def __len__(self):
-        return self.num_layers
-
     @property
     def embedding(self):
         return eqx.nn.Embedding(
