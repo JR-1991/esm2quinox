@@ -126,7 +126,7 @@ class ESM2Result(eqx.Module):
 
     hidden: Float[Array, "length embed_size"]
     logits: Float[Array, "length alphabet_size"]
-    all_hidden: list[Float[Array, "length embed_size"]]
+    all_hidden: Float[Array, "num_layers length embed_size"]
 
 
 class LogitHead(eqx.Module):
