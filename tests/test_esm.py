@@ -139,14 +139,25 @@ def test_all_hidden_output(getkey):
 
     out = model(tokens)
 
-    # Check all_hidden dimensions (should num_layers x length x embed_size)
-    assert out.all_hidden.shape == (num_layers, seq_length, embed_size), (
-        f"Expected all_hidden shape {(num_layers, seq_length, embed_size)}, "
-        f"got {out.all_hidden.shape}"
+    # Check all_hidden is a list with the right amount of elements
+    assert isinstance(out.all_hidden, list), (
+        f"Expected all_hidden to be a list, got {type(out.all_hidden)}"
     )
+    assert len(out.all_hidden) == num_layers, (
+        f"Expected all_hidden to have {num_layers} elements, got {len(out.all_hidden)}"
+    )
+    # Check each element has the right shape
+    for i, hidden in enumerate(out.all_hidden):
+        assert hidden.shape == (seq_length, embed_size), (
+            f"Expected all_hidden[{i}] shape {(seq_length, embed_size)}, "
+            f"got {hidden.shape}"
+        )
 
     # Test with string input
     out2 = model("SPIDERMAN")
     assert out2.hidden.shape == (seq_length, embed_size)
     assert out2.logits.shape == (seq_length, alphabet_size)
-    assert out2.all_hidden.shape == (num_layers, seq_length, embed_size)
+    assert isinstance(out2.all_hidden, list)
+    assert len(out2.all_hidden) == num_layers
+    for hidden in out2.all_hidden:
+        assert hidden.shape == (seq_length, embed_size)
